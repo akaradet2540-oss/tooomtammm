@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ทีเด็ดฟุตบอลรายวัน</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117;
+            color: #e6edf3;
+            background-image: url('https://placehold.co/1920x1080/1a2233/d1d5db?text=Football+Stadium');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .tip-card {
+            background: #111827; /* Dark background color */
+            border: 2px solid transparent;
+            border-radius: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        .tip-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: inherit;
+            padding: 2px; /* Border thickness */
+            background: linear-gradient(45deg, #1d4ed8, #4f46e5, #9333ea, #db2777); /* Gradient border */
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            z-index: -1;
+        }
+        .tip-card:hover {
+            transform: scale(1.03); /* Slightly less dramatic scale */
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 0 25px rgba(147, 51, 234, 0.7); /* Stronger glow effect on hover */
+        }
+        .analysis-card {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+            background-color: #1a202c;
+        }
+        .analysis-card.expanded {
+            max-height: 500px;
+            transition: max-height 0.5s ease-in;
+        }
+        .add-tip-form {
+            display: none;
+        }
+        .add-tip-form.expanded {
+            display: block;
+        }
+        /* CSS for the floating logo */
+        .floating-logo {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 80px;
+            height: 80px;
+            z-index: 50;
+            border-radius: 50%;
+            animation: slow-float-around 60s linear infinite; /* Increased duration for slower movement */
+        }
+        /* Keyframes for the floating animation */
+        @keyframes slow-float-around {
+            0% { transform: translate(0, 0) scale(1); }
+            20% { transform: translate(calc(100vw - 120px), calc(50vh - 40px)) scale(1.1); }
+            40% { transform: translate(calc(20vw - 20px), calc(100vh - 120px)) scale(1.2); }
+            60% { transform: translate(calc(80vw - 80px), calc(20vh - 20px)) scale(1.1); }
+            80% { transform: translate(calc(50vw - 40px), calc(80vh - 80px)) scale(1.2); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+
+        /* Pop-up Ad CSS */
+        .ad-popup {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.3s ease-in-out;
+            transform: translateY(100%);
+            /* The animation will now run immediately on page load */
+            animation: slide-in 0.8s forwards;
+        }
+        /* A new class to hide the ad after 5 seconds */
+        .ad-popup.ad-popup-hidden {
+            transform: translateY(100%);
+            opacity: 0;
+            transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+            pointer-events: none;
+        }
+        .ad-popup img {
+            display: block;
+            width: 200px;
+            height: auto;
+        }
+        .ad-close-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .ad-close-btn:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        @keyframes slide-in {
+            to {
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex items-center justify-center min-h-screen">
+    <!-- Floating Logo -->
+    <img src="https://placehold.co/80x80/0d1117/e6edf3?text=Football" alt="Floating Football Logo" class="floating-logo">
+
+    <div class="w-full max-w-5xl">
+        <!-- ส่วนหัวของหน้าเว็บ -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-100">
+                ทีเด็ดฟุตบอลประจำวัน
+            </h1>
+            <p class="text-lg md:text-xl text-gray-400 mt-2">อัปเดตทุกวัน วันละ 10 คู่ สำหรับเซียนตัวจริง</p>
+            <p class="text-lg text-gray-400 mt-2">ทีเด็ดประจำวันที่ <span id="currentDate" class="font-semibold text-green-400"></span> เวลา <span id="currentTime" class="font-semibold text-green-400"></span></p>
+            <!-- ข้อความอธิบายเกี่ยวกับฐานข้อมูลสาธารณะ -->
+            <p class="text-sm mt-4 text-gray-500 font-medium">
+                แอปพลิเคชันนี้ใช้ฐานข้อมูลสาธารณะ คุณสามารถเพิ่มทีเด็ดเพื่อแบ่งปันกับผู้อื่นได้
+            </p>
+        </header>
+
+        <!-- ส่วนของปุ่มนำทางวันที่ -->
+        <div class="flex justify-center items-center space-x-4 mb-8">
+            <button id="prevDayBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition-colors duration-300 transform hover:scale-105 shadow-lg">
+                &lt; วันก่อนหน้า
+            </button>
+            <button id="nextDayBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition-colors duration-300 transform hover:scale-105 shadow-lg">
+                วันถัดไป &gt;
+            </button>
+        </div>
+
+        <!-- ปุ่มสำหรับเพิ่มทีเด็ด (สำหรับผู้ดูแล) -->
+        <div class="text-center mb-8 space-x-4">
+            <!-- ปุ่มนี้จะแสดงเฉพาะเจ้าของแอปเท่านั้น -->
+            <button id="toggleFormBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-full transition-colors duration-300 transform hover:scale-105 shadow-lg hidden">
+                เพิ่มทีเด็ดใหม่
+            </button>
+            <!-- New button for automatic generation -->
+            <button id="generateTipsBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-full transition-colors duration-300 transform hover:scale-105 shadow-lg hidden">
+                สร้างทีเด็ดอัตโนมัติ
+            </button>
+        </div>
+
+        <!-- ฟอร์มสำหรับเพิ่มทีเด็ด -->
+        <!-- ฟอร์มนี้จะแสดงเฉพาะเจ้าของแอปเท่านั้น -->
+        <form id="addTipForm" class="add-tip-form bg-gray-800 p-8 rounded-3xl shadow-2xl mb-8">
+            <h2 class="text-2xl font-bold mb-6 text-center">เพิ่มทีเด็ด</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="text" id="league" placeholder="ชื่อลีก (เช่น Premier League)" class="p-3 rounded-lg bg-gray-700 text-gray-200">
+                <input type="text" id="team1" placeholder="ทีมเหย้า" class="p-3 rounded-lg bg-gray-700 text-gray-200">
+                <input type="text" id="team2" placeholder="ทีมเยือน" class="p-3 rounded-lg bg-gray-700 text-gray-200">
+                <input type="text" id="tip" placeholder="ทีเด็ด (เช่น ลิเวอร์พูล ชนะ)" class="p-3 rounded-lg bg-gray-700 text-gray-200">
+                <input type="text" id="confidence" placeholder="ความมั่นใจ (เช่น 90%)" class="p-3 rounded-lg bg-gray-700 text-gray-200">
+                <!-- เพิ่มช่องเลือกวันที่ -->
+                <input type="date" id="tipDate" class="p-3 rounded-lg bg-gray-700 text-gray-200">
+                <textarea id="analysis" placeholder="บทวิเคราะห์" rows="3" class="p-3 rounded-lg bg-gray-700 text-gray-200 md:col-span-2"></textarea>
+            </div>
+            <button type="submit" class="mt-6 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-full transition-colors duration-300 transform hover:scale-105 shadow-lg">
+                บันทึกทีเด็ด
+            </button>
+            <div id="statusMessage" class="mt-4 text-center text-sm" style="display: none;"></div>
+        </form>
+
+        <!-- พื้นที่แสดงผลการโหลด -->
+        <div id="loading" class="text-center text-gray-400 py-10" style="display: none;">
+            กำลังโหลดทีเด็ด...
+        </div>
+
+        <!-- พื้นที่แสดงผลทีเด็ดฟุตบอล -->
+        <div id="tipsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- ทีเด็ดแต่ละคู่จะถูกสร้างขึ้นที่นี่ด้วย JavaScript -->
+        </div>
+
+        <!-- ส่วนแสดง User ID -->
+        <div class="text-center mt-8 text-sm text-gray-600">
+            <p>User ID: <span id="userIdDisplay" class="font-mono text-gray-400">Loading...</span></p>
+        </div>
+
+        <!-- ฟุตเตอร์ -->
+        <footer class="text-center text-gray-500 mt-8 text-sm">
+            <p>แหล่งรวมทีเด็ดบอลยอดเยี่ยม</p>
+        </footer>
+    </div>
+
+    <!-- Pop-up Ad Element -->
+    <div id="ad-popup" class="ad-popup">
+        <button id="ad-close-btn" class="ad-close-btn">X</button>
+        <a href="https://your-ad-destination.com" target="_blank">
+            <img src="https://placehold.co/300x300/e6edf3/0d1117?text=Your+Ad" alt="Advertisement" class="rounded-lg">
+        </a>
+    </div>
+
+    <script type="module">
+        // Global variables provided by the environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, onSnapshot, addDoc, serverTimestamp, setLogLevel, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Set Firebase log level for debugging
+        setLogLevel('debug');
+
+        let app;
+        let db;
+        let auth;
+        let userId = null;
+        let isAppOwner = false; // สถานะเพื่อตรวจสอบว่าเป็นเจ้าของแอปหรือไม่
+
+        const tipsContainer = document.getElementById('tipsContainer');
+        const currentDateElem = document.getElementById('currentDate');
+        const currentTimeElem = document.getElementById('currentTime');
+        const prevDayBtn = document.getElementById('prevDayBtn');
+        const nextDayBtn = document.getElementById('nextDayBtn');
+        const toggleFormBtn = document.getElementById('toggleFormBtn');
+        const generateTipsBtn = document.getElementById('generateTipsBtn');
+        const addTipForm = document.getElementById('addTipForm');
+        const statusMessage = document.getElementById('statusMessage');
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        const tipDateInput = document.getElementById('tipDate');
+
+        const leagueInput = document.getElementById('league');
+        const team1Input = document.getElementById('team1');
+        const team2Input = document.getElementById('team2');
+        const tipInput = document.getElementById('tip');
+        const confidenceInput = document.getElementById('confidence');
+        const analysisInput = document.getElementById('analysis');
+
+        // Set the initial date to September 24, 2025
+        let currentDate = new Date('2025-09-24');
+        const tipCollectionPath = `/artifacts/${appId}/public/data/football_tips`;
+
+        // Function to format date to "yyyy-mm-dd"
+        function formatDate(date) {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        // Function to update the current time
+        function updateTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            currentTimeElem.textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        // Function to add sample data if the collection for the current day is empty
+        async function addSampleTipsIfEmpty() {
+            const formattedDate = formatDate(currentDate);
+            const tipsQuery = query(collection(db, tipCollectionPath), where("date", "==", formattedDate));
+            const snapshot = await getDocs(tipsQuery);
+
+            if (snapshot.empty) {
+                const sampleTips = [
+                    {
+                        league: "Premier League",
+                        team1: "Chelsea",
+                        team2: "Liverpool",
+                        tip: "ลิเวอร์พูล ชนะ",
+                        confidence: "88%",
+                        analysis: "ลิเวอร์พูลมีฟอร์มการเล่นที่คงเส้นคงวามากกว่า และมีแนวรุกที่อันตราย คาดว่าเชลซีจะต้านทานได้ยาก"
+                    },
+                    {
+                        league: "La Liga",
+                        team1: "Atletico Madrid",
+                        team2: "Real Madrid",
+                        tip: "เสมอ",
+                        confidence: "82%",
+                        analysis: "เป็นเกมดาร์บี้แมตช์ที่ไม่มีใครยอมใคร ฟอร์มของทั้งสองทีมใกล้เคียงกันมาก คาดว่าสุดท้ายจะจบลงด้วยการแบ่งแต้ม"
+                    },
+                    {
+                        league: "Bundesliga",
+                        team1: "RB Leipzig",
+                        team2: "Bayern Munich",
+                        tip: "บาเยิร์น ชนะ",
+                        confidence: "90%",
+                        analysis: "บาเยิร์นมิวนิกยังคงเหนือกว่าทุกด้าน ทั้งขุมกำลังและฟอร์มการเล่น คาดว่าจะเป็นเกมที่บาเยิร์นครองเกมได้ทั้งหมดและคว้าชัยชนะไป"
+                    },
+                    {
+                        league: "Serie A",
+                        team1: "Napoli",
+                        team2: "AS Roma",
+                        tip: "นาโปลี ชนะ",
+                        confidence: "85%",
+                        analysis: "นาโปลีมีฟอร์มการเล่นในบ้านที่แข็งแกร่งมาก แนวรุกก็คมกว่า คาดว่าจะสามารถเอาชนะโรม่าได้ไม่ยาก"
+                    },
+                    {
+                        league: "Ligue 1",
+                        team1: "Monaco",
+                        team2: "PSG",
+                        tip: "PSG ชนะ",
+                        confidence: "94%",
+                        analysis: "ปารีส แซงต์-แชร์กแมง มีขุมกำลังที่เหนือกว่าอย่างชัดเจน แม้จะเล่นนอกบ้านก็ยังน่าจะเอาชนะโมนาโกได้ไม่ยาก"
+                    }
+                ];
+
+                for (const tip of sampleTips) {
+                    await addDoc(collection(db, tipCollectionPath), {
+                        ...tip,
+                        date: formattedDate,
+                        createdAt: serverTimestamp(),
+                        createdBy: "system"
+                    });
+                }
+                console.log("Added sample tips for today.");
+            }
+        }
+        
+        // Initialize Firebase and Authentication
+        const initFirebase = async () => {
+            if (!firebaseConfig) {
+                console.error("Firebase config is missing.");
+                return;
+            }
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = userId;
+                        console.log("User signed in:", userId);
+
+                        // ตรวจสอบว่าเป็นเจ้าของแอปหรือไม่
+                        isAppOwner = (userId === appId);
+                        if (isAppOwner) {
+                            toggleFormBtn.classList.remove('hidden');
+                            generateTipsBtn.classList.remove('hidden');
+                        }
+
+                        // Once authenticated, start listening to tips
+                        renderTips(currentDate);
+                        // The app will check for tips for the current date, and if none exist, it will add samples
+                        await addSampleTipsIfEmpty();
+                    } else {
+                        try {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        } catch (error) {
+                            console.error("Firebase auth error:", error);
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+            }
+        };
+
+        // Function to get logo URL (placeholder)
+        function getLogoUrl(name, type) {
+            const leagueLogos = {
+                "Premier League": "PL", "La Liga": "LL", "Bundesliga": "BL", "Ligue 1": "L1",
+                "Serie A": "SA", "Champions League": "UCL", "Europa League": "UEL", "Conference League": "UCL"
+            };
+            const teamLogos = {
+                "Liverpool": "LIV", "Man Utd": "MUN", "Barcelona": "BAR", "Real Madrid": "RMA",
+                "Bayern Munich": "BMU", "Dortmund": "DOR", "PSG": "PSG", "Marseille": "MAR",
+                "AC Milan": "ACM", "Inter Milan": "INT", "Man City": "MCI", "Arsenal": "ARS",
+                "Atletico Madrid": "ATM", "Sevilla": "SEV", "RB Leipzig": "RBL", "Schalke 04": "S04",
+                "Monaco": "MON", "Lille": "LIL", "Juventus": "JUV", "Napoli": "NAP",
+                "Chelsea": "CHE", "Tottenham": "TOT", "Valencia": "VAL", "Villarreal": "VIL",
+                "Frankfurt": "FRA", "Cologne": "COL", "Ajax": "AJX", "West Ham": "WHU", "Fiorentina": "FIO",
+                "Lyon": "LYO", "Strasbourg": "STR", "Roma": "ROM", "Lazio": "LAZ", "AS Roma": "ROM"
+            };
+            const text = type === 'league' ? (leagueLogos[name] || name) : (teamLogos[name] || name);
+            return `https://placehold.co/100x100/1e293b/d1d5db?text=${text}`;
+        }
+
+        // Function to render football tips from Firestore
+        function renderTips(date) {
+            if (!db || !userId) return;
+
+            const formattedDate = formatDate(date);
+            currentDateElem.textContent = date.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            tipsContainer.innerHTML = '';
+            document.getElementById('loading').style.display = 'block';
+
+            const tipsQuery = query(collection(db, tipCollectionPath), where("date", "==", formattedDate));
+
+            onSnapshot(tipsQuery, (snapshot) => {
+                document.getElementById('loading').style.display = 'none';
+                if (snapshot.empty) {
+                    tipsContainer.innerHTML = `
+                        <div class="col-span-full text-center text-gray-500 py-10">
+                            <p>ยังไม่มีทีเด็ดสำหรับวันนี้</p>
+                        </div>
+                    `;
+                    // Automatically add sample tips if the date is empty
+                    addSampleTipsIfEmpty();
+                } else {
+                    tipsContainer.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        const tip = doc.data();
+                        const tipCard = document.createElement('div');
+                        // Use the new tip-card class
+                        tipCard.className = `tip-card p-6 shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer flex flex-col space-y-4`;
+                        tipCard.innerHTML = `
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="flex items-center space-x-3">
+                                    <img src="${getLogoUrl(tip.league, 'league')}" alt="${tip.league} logo" class="w-12 h-12 rounded-full border-2 border-gray-600">
+                                    <h3 class="text-xl font-semibold text-green-400">${tip.league}</h3>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-center space-x-4 md:space-x-8 text-center my-4">
+                                <div class="flex flex-col items-center">
+                                    <img src="${getLogoUrl(tip.team1, 'team')}" alt="${tip.team1} logo" class="w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-gray-600">
+                                    <span class="mt-2 text-lg md:text-xl font-bold">${tip.team1}</span>
+                                </div>
+                                <span class="text-3xl md:text-4xl font-extrabold text-red-500">VS</span>
+                                <div class="flex flex-col items-center">
+                                    <img src="${getLogoUrl(tip.team2, 'team')}" alt="${tip.team2} logo" class="w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-gray-600">
+                                    <span class="mt-2 text-lg md:text-xl font-bold">${tip.team2}</span>
+                                </div>
+                            </div>
+                            <div class="border-t border-gray-600 pt-4 flex-grow">
+                                <p class="text-gray-400 text-lg">ทีเด็ดจากเซียน: <span class="font-bold text-orange-400">${tip.tip}</span></p>
+                            </div>
+                            <div class="flex items-center justify-between text-gray-400 mt-2">
+                                <p>ความมั่นใจ: <span class="font-bold text-red-500">${tip.confidence}</span></p>
+                                <button class="toggle-analysis bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-300 hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-400">
+                                    ดูบทวิเคราะห์
+                                </button>
+                            </div>
+                            <div class="analysis-card bg-gray-900 rounded-b-3xl p-4 mt-4 text-gray-300 transition-all duration-500 ease-in-out">
+                                <p class="text-pink-400 font-bold mb-2">บทวิเคราะห์โดยเซียน</p>
+                                <p class="text-sm md:text-base leading-relaxed">${tip.analysis}</p>
+                            </div>
+                        `;
+                        tipsContainer.appendChild(tipCard);
+                    });
+
+                    // Add event listeners for analysis toggles
+                    document.querySelectorAll('.toggle-analysis').forEach(button => {
+                        button.addEventListener('click', (e) => {
+                            const analysisCard = e.target.closest('.flex.flex-col').querySelector('.analysis-card');
+                            const isExpanded = analysisCard.classList.toggle('expanded');
+                            if (isExpanded) {
+                                e.target.textContent = 'ซ่อนบทวิเคราะห์';
+                            } else {
+                                e.target.textContent = 'ดูบทวิเคราะห์';
+                            }
+                        });
+                    });
+                }
+            });
+        }
+
+        // Event listener for date navigation
+        prevDayBtn.addEventListener('click', () => {
+            currentDate.setDate(currentDate.getDate() - 1);
+            renderTips(currentDate);
+        });
+
+        nextDayBtn.addEventListener('click', () => {
+            currentDate.setDate(currentDate.getDate() + 1);
+            renderTips(currentDate);
+        });
+
+        // Toggle form visibility
+        toggleFormBtn.addEventListener('click', () => {
+            addTipForm.classList.toggle('expanded');
+            // Set the default date in the form to the current date
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            tipDateInput.value = `${yyyy}-${mm}-${dd}`;
+        });
+
+        // Handle form submission to add new tip
+        addTipForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const league = document.getElementById('league').value;
+            const team1 = document.getElementById('team1').value;
+            const team2 = document.getElementById('team2').value;
+            const tip = document.getElementById('tip').value;
+            const confidence = document.getElementById('confidence').value;
+            const analysis = document.getElementById('analysis').value;
+            const tipDate = document.getElementById('tipDate').value;
+
+            if (!league || !team1 || !team2 || !tip || !confidence || !analysis || !tipDate) {
+                statusMessage.textContent = 'กรุณากรอกข้อมูลให้ครบทุกช่อง';
+                statusMessage.style.display = 'block';
+                statusMessage.style.color = '#f87171';
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, tipCollectionPath), {
+                    date: tipDate,
+                    league,
+                    team1,
+                    team2,
+                    tip,
+                    confidence,
+                    analysis,
+                    createdAt: serverTimestamp(),
+                    createdBy: userId
+                });
+                statusMessage.textContent = 'บันทึกทีเด็ดสำเร็จ!';
+                statusMessage.style.display = 'block';
+                statusMessage.style.color = '#4ade80';
+                addTipForm.reset();
+            } catch (error) {
+                console.error("Error adding tip:", error);
+                statusMessage.textContent = 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
+                statusMessage.style.display = 'block';
+                statusMessage.style.color = '#f87171';
+            }
+        });
+
+        // New function to generate tips using LLM
+        generateTipsBtn.addEventListener('click', async () => {
+            statusMessage.textContent = 'กำลังวิเคราะห์ข้อมูล...';
+            statusMessage.style.display = 'block';
+            statusMessage.style.color = '#fde047';
+            
+            const today = new Date();
+            const formattedDate = formatDate(today);
+            tipDateInput.value = formattedDate;
+
+            const systemPrompt = `Act as a world-class football analyst. Provide 3 high-confidence football tips for today's matches. The tips should be from major leagues only (e.g., Premier League, La Liga, Serie A, Bundesliga, Ligue 1, Champions League). Provide the analysis in a detailed, professional tone, with one paragraph per tip. The output must be a single JSON array of objects.
+            
+            Each object in the array must have the following properties:
+            - "league" (string): The name of the league.
+            - "team1" (string): The name of the home team.
+            - "team2" (string): The name of the away team.
+            - "tip" (string): The football tip (e.g., "ทีม A ชนะ", "เสมอ", "สูง", "ต่ำ").
+            - "confidence" (string): The confidence level in percentage (e.g., "90%").
+            - "analysis" (string): A detailed analysis of the match in Thai.
+
+            Ensure the JSON is correctly formatted and contains only the array. Do not include any other text or explanation outside the JSON array.
+            `;
+            const userQuery = `Find today's major football matches and provide 3 tips with analysis.`;
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                "league": { "type": "STRING" },
+                                "team1": { "type": "STRING" },
+                                "team2": { "type": "STRING" },
+                                "tip": { "type": "STRING" },
+                                "confidence": { "type": "STRING" },
+                                "analysis": { "type": "STRING" }
+                            },
+                            "propertyOrdering": ["league", "team1", "team2", "tip", "confidence", "analysis"]
+                        }
+                    }
+                }
+            };
+            
+            let retryCount = 0;
+            const maxRetries = 3;
+            let response;
+            
+            while (retryCount < maxRetries) {
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.status === 429) {
+                        const delay = Math.pow(2, retryCount) * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        retryCount++;
+                        continue;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`API call failed with status: ${response.status}`);
+                    }
+                    break;
+                } catch (error) {
+                    if (retryCount >= maxRetries - 1) {
+                        console.error('Failed to generate tips after multiple retries:', error);
+                        statusMessage.textContent = 'เกิดข้อผิดพลาดในการสร้างทีเด็ดอัตโนมัติ';
+                        statusMessage.style.color = '#f87171';
+                        return;
+                    }
+                    const delay = Math.pow(2, retryCount) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    retryCount++;
+                }
+            }
+            
+            try {
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const json = candidate.content.parts[0].text;
+                    const parsedJson = JSON.parse(json);
+
+                    // For this example, we'll just use the first tip generated
+                    if (parsedJson.length > 0) {
+                        const tipData = parsedJson[0];
+                        leagueInput.value = tipData.league;
+                        team1Input.value = tipData.team1;
+                        team2Input.value = tipData.team2;
+                        tipInput.value = tipData.tip;
+                        confidenceInput.value = tipData.confidence;
+                        analysisInput.value = tipData.analysis;
+
+                        // Display the form and a success message
+                        addTipForm.classList.add('expanded');
+                        statusMessage.textContent = 'สร้างทีเด็ดอัตโนมัติสำเร็จ! กรุณาตรวจสอบและบันทึก';
+                        statusMessage.style.color = '#4ade80';
+                    } else {
+                        statusMessage.textContent = 'ไม่พบข้อมูลทีเด็ด กรุณาลองใหม่อีกครั้ง';
+                        statusMessage.style.color = '#f87171';
+                    }
+                } else {
+                    statusMessage.textContent = 'ไม่สามารถสร้างทีเด็ดได้';
+                    statusMessage.style.color = '#f87171';
+                }
+            } catch (error) {
+                console.error("Error parsing generated content:", error);
+                statusMessage.textContent = 'เกิดข้อผิดพลาดในการประมวลผลข้อมูล';
+                statusMessage.style.color = '#f87171';
+            }
+        });
+
+        // Initialize the app on page load
+        initFirebase();
+        // Update time every second
+        setInterval(updateTime, 1000);
+        
+        // Hide the ad pop-up after 5 seconds
+        document.addEventListener('DOMContentLoaded', () => {
+            const adPopup = document.getElementById('ad-popup');
+            const adCloseBtn = document.getElementById('ad-close-btn');
+
+            adCloseBtn.addEventListener('click', () => {
+                adPopup.classList.add('ad-popup-hidden');
+            });
+            
+            // Hide the ad after 5 seconds
+            setTimeout(() => {
+                adPopup.classList.add('ad-popup-hidden');
+            }, 5000);
+        });
+    </script>
+</body>
+</html>
